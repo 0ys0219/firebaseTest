@@ -2,7 +2,7 @@
   <div class="container" style="margin-top: 20px">
     <Toast></Toast>
     <span class="p-float-label">
-      <InputText id="todo" v-model="input" autocomplete="off" />
+      <InputText ref="inputText" id="todo" v-model="input" autocomplete="off" />
       <label for="todo">新增事項</label>
     </span>
     <Button
@@ -73,12 +73,14 @@ import {
 } from "firebase/firestore";
 import { onMounted } from "vue";
 import { useConfirm } from "primevue/useconfirm";
+import { onUpdated } from "vue";
 
 type Todo = {
   id: string;
   value: string;
 };
-
+const inputText = ref();
+const checkbox = ref();
 const input = ref("");
 
 const list = ref<Todo[]>([]);
@@ -100,15 +102,13 @@ async function add() {
     });
     return;
   }
-  const docRef = await addDoc(collection(db, "list"), {
-    id: "",
+  const docRef = await addDoc(collection(db, "toDoList"), {
     value: input.value,
   });
-
-  const listDocRef = doc(db, "list", docRef.id);
-  await updateDoc(listDocRef, { id: docRef.id });
-  await getAllList();
   input.value = "";
+
+  const listDocRef = doc(db, "toDoList", docRef.id);
+  await updateDoc(listDocRef, { id: docRef.id });
 }
 
 function showDeleteCheckBox() {
@@ -117,7 +117,7 @@ function showDeleteCheckBox() {
 
 async function confirmDelete() {
   deleteIdList.value.forEach(async (id) => {
-    await deleteDoc(doc(db, "list", id));
+    await deleteDoc(doc(db, "toDoList", id));
   });
   toast.add({
     severity: "info",
@@ -125,14 +125,12 @@ async function confirmDelete() {
     life: 3000,
   });
   deleteIdList.value = [];
-
-  await getAllList();
 }
 
 async function getAllList() {
   let arr: Todo[] = [];
 
-  (await getDocs(collection(db, "list"))).forEach((doc) => {
+  (await getDocs(collection(db, "toDoList"))).forEach((doc) => {
     arr.push({ id: doc.data().id, value: doc.data().value });
   });
 
@@ -140,6 +138,10 @@ async function getAllList() {
 }
 
 onMounted(async () => {
+  await getAllList();
+});
+
+onUpdated(async () => {
   await getAllList();
 });
 </script>
